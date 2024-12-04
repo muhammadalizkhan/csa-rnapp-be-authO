@@ -1,11 +1,13 @@
 const axios = require('axios');
 
+// Read the environment variables (make sure they are in .env file)
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
 const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID;
 const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
 
-const getAccessToken = async () => {
+module.exports = async (req, res) => {
     try {
+        // Make a POST request to Auth0 to get an access token
         const response = await axios.post(`https://${AUTH0_DOMAIN}/oauth/token`, {
             client_id: AUTH0_CLIENT_ID,
             client_secret: AUTH0_CLIENT_SECRET,
@@ -14,12 +16,8 @@ const getAccessToken = async () => {
         });
 
         const accessToken = response.data.access_token;
-        console.log('Access Token:', accessToken);
-        return accessToken;
+        res.status(200).json({ accessToken });
     } catch (error) {
-        console.error('Error obtaining access token:', error);
-        throw new Error('Unable to get access token');
+        res.status(500).json({ error: 'Unable to get access token' });
     }
 };
-
-module.exports = { getAccessToken };
