@@ -2,10 +2,18 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { resetPasswordWithAuth0 } = require('./authService');
 const dotenv = require('dotenv');
+const cors = require('cors');
 
 dotenv.config();
 
 const app = express();
+
+app.use(cors({
+    origin: 'http://139.135.46.150',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 const port = process.env.PORT || 3000;
@@ -42,6 +50,7 @@ app.post('/api/verify-code', (req, res) => {
         return res.status(400).json({ success: false, error: 'Invalid verification code' });
     }
 });
+
 app.post('/api/reset-password', async (req, res) => {
     const { email } = req.body;
     try {
