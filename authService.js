@@ -29,15 +29,19 @@ const getUserIdByEmail = async (email) => {
   const accessToken = await getAccessToken();
   try {
     const response = await axios.get(
-      `https://${AUTH0_DOMAIN}/api/v2/users-by-email`,
+      `https://${AUTH0_DOMAIN}/api/v2/users`,
       {
-        params: { email },
+        params: { q: `email:"${email}"`, search_engine: 'v3' },
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
       }
     );
-    return response.data[0]?.user_id;
+    if (response.data && response.data.length > 0) {
+      return response.data[0].user_id;
+    } else {
+      throw new Error('User not found');
+    }
   } catch (error) {
     console.error('Error fetching user by email:', error);
     throw new Error('Unable to fetch user details');
@@ -45,9 +49,14 @@ const getUserIdByEmail = async (email) => {
 };
 
 const resetPasswordWithAuth0 = async (email) => {
-  const userId = await getUserIdByEmail(email);
-  const accessToken = await getAccessToken();
+  let userId;
+  try {
+    userId = await getUserIdByEmail(email);
+  } catch (error) {
+    throw new Error(`Error finding user for ${email}: ${error.message}`);
+  }
 
+  const accessToken = await getAccessToken();
   try {
     const response = await axios.post(
       `https://${AUTH0_DOMAIN}/api/v2/tickets/password-change`,
@@ -61,7 +70,6 @@ const resetPasswordWithAuth0 = async (email) => {
         },
       }
     );
-
     console.log('Password reset email sent:', response.data);
     return response.data;
   } catch (error) {
