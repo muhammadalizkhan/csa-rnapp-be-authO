@@ -6,17 +6,17 @@ const AUTH0_API_TOKEN = process.env.AUTH0_API_TOKEN;
 
 let verificationCodes = {};
 
-
 const generateVerificationCode = (email) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
-  verificationCodes[email] = code;
+  const expirationTime = Date.now() + 10 * 60 * 1000;
+  verificationCodes[email] = { code, expirationTime };
   console.log(`Generated code for ${email}: ${code}`);
   return code;
 };
 
-
 const verifyCode = (email, code) => {
-  if (verificationCodes[email] && verificationCodes[email] === code) {
+  const storedCode = verificationCodes[email];
+  if (storedCode && storedCode.code === code && Date.now() < storedCode.expirationTime) {
     console.log('Code verification successful for', email);
     return true;
   } else {
@@ -25,15 +25,34 @@ const verifyCode = (email, code) => {
   }
 };
 
+const getUserIdByEmail = async (email) => {
+  const accessToken = await getAccessToken();
+  try {
+    const response = await axios.get(
+      `https://${AUTH0_DOMAIN}/api/v2/users-by-email`,
+      {
+        params: { email },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return response.data[0]?.user_id;
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    throw new Error('Unable to fetch user details');
+  }
+};
 
 const resetPasswordWithAuth0 = async (email) => {
+  const userId = await getUserIdByEmail(email);
   const accessToken = await getAccessToken();
 
   try {
     const response = await axios.post(
       `https://${AUTH0_DOMAIN}/api/v2/tickets/password-change`,
       {
-        user_id: email,
+        user_id: userId,
       },
       {
         headers: {
